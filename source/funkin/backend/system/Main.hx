@@ -218,17 +218,22 @@ class Main extends Sprite
 		MemoryUtil.clearMajor();
 	}
 
-	public static var noCwdFix:Bool = false;
 	public static function fixWorkingDirectory() {
-		#if windows
-		if (!noCwdFix && !sys.FileSystem.exists('manifest/default.json')) {
-			Sys.setCwd(haxe.io.Path.directory(Sys.programPath()));
-		}
-		#elseif android
-		Sys.setCwd(haxe.io.Path.addTrailingSlash(VERSION.SDK_INT > 30 ? Context.getObbDir() : Context.getExternalFilesDir()));
-		#elseif (ios || switch)
-		Sys.setCwd(haxe.io.Path.addTrailingSlash(openfl.filesystem.File.applicationStorageDirectory.nativePath));
-		#end
+    #if windows
+    if (!noCwdFix && !sys.FileSystem.exists('manifest/default.json')) {
+        Sys.setCwd(haxe.io.Path.directory(Sys.programPath()));
+    }
+    #elseif android
+    var extDir:String = lime.system.JNI.callStaticMethod(
+        "org/libsdl/app/SDLActivity",
+        "getExternalFilesDir",
+        [],
+        "Ljava/lang/String;"
+    );
+    Sys.setCwd(haxe.io.Path.addTrailingSlash(extDir));
+    #elseif (ios || switch)
+    Sys.setCwd(haxe.io.Path.addTrailingSlash(openfl.filesystem.File.applicationStorageDirectory.nativePath));
+    #end
 	}
 
 	private static var _tickFocused:Float = 0;
