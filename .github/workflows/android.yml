@@ -1,0 +1,159 @@
+name: Android Builds
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Android Release Build
+    permissions: write-all
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Pulling the new commit
+        uses: actions/checkout@v4
+
+      - name: Setting up Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: 4.3.7
+
+      - name: Setup Android SDK/NDK
+        uses: android-actions/setup-android@v2
+        with:
+          api-level: 33
+          ndk-version: 25.2.9519653
+          cmake-version: 3.24.1
+          jdk-version: 17
+
+      - name: Restore build cache
+        uses: actions/cache@v4.2.3
+        with:
+          key: cache-build-android
+          path: |
+            .haxelib/
+            export/release/android/haxe/
+            export/release/android/obj/
+
+      - run: |
+          echo "HXCPP_COMPILE_CACHE=~/.hxcpp" >> $GITHUB_ENV
+
+      - name: Installing/Updating Haxe Libraries
+        run: |
+          haxe -cp commandline -D analyzer-optimize --run Main setup -s
+
+      - name: Building Android Release APK
+        run: |
+          haxelib run lime build android -release
+
+      - name: Uploading Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Codename Engine Android Release
+          path: export/release/android/bin/*.apk
+
+      - name: Clear existing cache
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const caches = await github.rest.actions.getActionsCacheList({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            })
+            for (const cache of caches.data.actions_caches) {
+              if (cache.key == "cache-build-android") {
+                console.log('Clearing ' + cache.key + '...')
+                await github.rest.actions.deleteActionsCacheById({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  cache_id: cache.id,
+                })
+                console.log("Cache cleared.")
+              }
+            }
+
+      - name: Uploading new cache
+        uses: actions/cache@v4.2.3
+        with:
+          key: cache-build-android
+          path: |
+            .haxelib/
+            export/release/android/haxe/
+            export/release/android/obj/
+
+  debug_build:
+    name: Android Debug Build
+    permissions: write-all
+    runs-on: ubuntu-24.04
+    needs: build
+    steps:
+      - name: Pulling the new commit
+        uses: actions/checkout@v4
+
+      - name: Setting up Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: 4.3.7
+
+      - name: Setup Android SDK/NDK
+        uses: android-actions/setup-android@v2
+        with:
+          api-level: 33
+          ndk-version: 25.2.9519653
+          cmake-version: 3.24.1
+          jdk-version: 17
+
+      - name: Restore debug cache
+        uses: actions/cache@v4.2.3
+        with:
+          key: cache-build-android-debug
+          path: |
+            .haxelib/
+            export/debug/android/haxe/
+            export/debug/android/obj/
+
+      - run: |
+          echo "HXCPP_COMPILE_CACHE=~/.hxcpp" >> $GITHUB_ENV
+
+      - name: Installing/Updating Haxe Libraries
+        run: |
+          haxe -cp commandline -D analyzer-optimize --run Main setup -s
+
+      - name: Building Android Debug APK
+        run: |
+          haxelib run lime build android -debug
+
+      - name: Uploading Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Codename Engine Android Debug
+          path: export/debug/android/bin/*.apk
+
+      - name: Clear existing debug cache
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const caches = await github.rest.actions.getActionsCacheList({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            })
+            for (const cache of caches.data.actions_caches) {
+              if (cache.key == "cache-build-android-debug") {
+                console.log('Clearing ' + cache.key + '...')
+                await github.rest.actions.deleteActionsCacheById({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  cache_id: cache.id,
+                })
+                console.log("Cache cleared.")
+              }
+            }
+
+      - name: Uploading new debug cache
+        uses: actions/cache@v4.2.3
+        with:
+          key: cache-build-android-debug
+          path: |
+            .haxelib/
+            export/debug/android/haxe/
+            export/debug/android/obj/
