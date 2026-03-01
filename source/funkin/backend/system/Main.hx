@@ -149,21 +149,22 @@ class Main extends Sprite
 		initTransition();
 	}
 
-	public static function refreshAssets():Void {
-		FunkinCache.instance.clearSecondLayer();
+	public static function refreshAssets() @:privateAccess {
+    FunkinCache.instance.clearSecondLayer();
 
-		var game = FlxG.game;
-		var daSndTray = Type.createInstance(game._customSoundTray = funkin.menus.ui.FunkinSoundTray, []);
-		var index:Int = game.numChildren - 1;
+    var gameInstance = FlxG.game;
 
-		if (game.soundTray != null) {
-			var newIndex:Int = game.getChildIndex(game.soundTray);
-			if (newIndex != -1) index = newIndex;
-			game.removeChild(game.soundTray);
-			game.soundTray.__cleanup();
-		}
+    var newSoundTray:FunkinSoundTray = Type.createInstance(funkin.menus.ui.FunkinSoundTray, []);
 
-		game.addChildAt(game.soundTray = daSndTray, index);
+    if (gameInstance.hasSoundTray()) {
+        var oldTray:FunkinSoundTray = gameInstance.getSoundTray();
+        var index:Int = gameInstance.getChildIndex(oldTray);
+        if (index == -1) index = gameInstance.numChildren - 1;
+
+        gameInstance.removeChild(oldTray);
+        oldTray.cleanup(); 
+	}
+    gameInstance.addSoundTrayAt(newSoundTray, index);
 	}
 
 	public static function initTransition():Void {
