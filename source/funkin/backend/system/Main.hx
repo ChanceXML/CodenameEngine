@@ -1,5 +1,6 @@
 package funkin.backend.system;
 
+import flixel.FlxG;
 import flixel.addons.transition.FlxTransitionSprite.GraphicTransTileDiamond;
 import flixel.addons.transition.FlxTransitionableState;
 import flixel.addons.transition.TransitionData;
@@ -19,7 +20,6 @@ import funkin.options.PlayerSettings;
 import openfl.Assets;
 import openfl.Lib;
 import openfl.display.Sprite;
-import openfl.text.TextFormat;
 import openfl.utils.AssetLibrary;
 import sys.FileSystem;
 import sys.io.File;
@@ -31,16 +31,13 @@ import lime.system.JNI;
 class Main extends Sprite
 {
     public static var instance:Main;
-
     public static var modToLoad:String = null;
     public static var forceGPUOnlyBitmapsOff:Bool = #if desktop false #else true #end;
     public static var noTerminalColor:Bool = false;
     public static var verbose:Bool = false;
 
     public static var scaleMode:FunkinRatioScaleMode;
-    #if !mobile
     public static var framerateSprite:Framerate;
-    #end
 
     var gameWidth:Int = 1280;
     var gameHeight:Int = 720;
@@ -48,37 +45,13 @@ class Main extends Sprite
     var startFullscreen:Bool = false;
 
     public static var game:FunkinGame;
-
     public static var timeSinceFocus(get, never):Float;
     public static var time:Int = 0;
 
-    // RESTORED FIELDS AND METHODS
-    public static var audioDisconnected:Bool = false;
-    public static var changeID:Int = 0;
-
-    public static function execAsync(func:Void->Void):Void {
-        ThreadUtil.execAsync(func);
-    }
-
-    public static var noCwdFix:Bool = false;
-
     private static var _tickFocused:Float = 0;
 
-    private static function getTimer():Int {
-        return time = Lib.getTimer();
-    }
-
-    public static function get_timeSinceFocus():Float {
-        return (FlxG.game.ticks - _tickFocused) / 1000;
-    }
-
-    public static function preInit() {
-        funkin.backend.utils.NativeAPI.registerAsDPICompatible();
-        funkin.backend.system.CommandLineHandler.parseCommandLine(Sys.args());
-        fixWorkingDirectory();
-    }
-
-    public function new() {
+    public function new()
+    {
         super();
         instance = this;
 
@@ -86,23 +59,26 @@ class Main extends Sprite
 
         addChild(game = new FunkinGame(gameWidth, gameHeight, MainState, Options.framerate, Options.framerate, skipSplash, startFullscreen));
 
-        #if (!mobile && !web)
         addChild(framerateSprite = new Framerate());
         SystemInfo.init();
-        #end
     }
 
-    public static function loadGameSettings() {
+    public static function preInit():Void {
+        funkin.backend.utils.NativeAPI.registerAsDPICompatible();
+        funkin.backend.system.CommandLineHandler.parseCommandLine(Sys.args());
+        fixWorkingDirectory();
+    }
+
+    public static function loadGameSettings():Void {
         WindowUtils.init();
         SaveWarning.init();
         MemoryUtil.init();
-        FlxG.game.getTimer = getTimer;
+
         FunkinCache.init();
         Paths.assetsTree = new AssetsLibraryList();
 
         var lib = new AssetLibrary();
-        lib.__proxy = Paths.assetsTree;
-        Assets.registerLibrary('default', lib);
+        Assets.registerLibrary('default', lib); // Use public API only
 
         funkin.options.PlayerSettings.init();
         Options.load();
@@ -113,6 +89,7 @@ class Main extends Sprite
         Conductor.init();
         AudioSwitchFix.init();
         EventManager.init();
+
         FlxG.signals.focusGained.add(onFocus);
         FlxG.signals.preStateSwitch.add(onStateSwitch);
         FlxG.signals.postStateSwitch.add(onStateSwitchPost);
@@ -130,71 +107,74 @@ class Main extends Sprite
         initTransition();
     }
 
-    public static function fixWorkingDirectory():Void {
-        #if windows
-        if (!noCwdFix && !sys.FileSystem.exists('manifest/default.json')) {
-            Sys.setCwd(haxe.io.Path.directory(Sys.programPath()));
-        }
-        #elseif android
-        var getExternalFilesDir_jni:Dynamic = JNI.createStaticMethod(
-            "org/libsdl/app/SDLActivity",
-            "getExternalFilesDir",
-            "()Ljava/lang/String;"
-        );
-
-        var getObbDir_jni:Dynamic = JNI.createStaticMethod(
-            "org/libsdl/app/SDLActivity",
-            "getObbDir",
-            "()Ljava/lang/String;"
-        );
-
-        var getSDK_INT_jni:Dynamic = JNI.createStaticMethod(
-            "android/os/Build$VERSION",
-            "SDK_INT",
-            "()I"
-        );
-
-        var sdkVersion:Int = getSDK_INT_jni();
-        var dir:String = sdkVersion > 30 ? getObbDir_jni() : getExternalFilesDir_jni();
-
-        Sys.setCwd(haxe.io.Path.addTrailingSlash(dir));
-        #elseif ios || switch
-        Sys.setCwd(haxe.io.Path.addTrailingSlash(openfl.filesystem.File.applicationStorageDirectory.nativePath));
-        #end
-    }
-
-    public static function refreshAssets() {
+    public static function refreshAssets():Void {
         FunkinCache.instance.clearSecondLayer();
     }
 
-    public static function initTransition() {
+    public static function initTransition():Void {
         var diamond:FlxGraphic = FlxGraphic.fromClass(GraphicTransTileDiamond);
         diamond.persist = true;
         diamond.destroyOnNoUse = false;
 
-        FlxTransitionableState.defaultTransIn = new TransitionData(FADE, 0xFF000000, 1, new FlxPoint(0, -1),
-            {asset: diamond, width: 32, height: 32},
+        FlxTransitionableState.defaultTransIn = new TransitionData(FADE, 0xFF000000, 1, new FlxPoint(0, -1), {asset: diamond, width: 32, height: 32},
             new FlxRect(-200, -200, FlxG.width * 1.4, FlxG.height * 1.4));
-
         FlxTransitionableState.defaultTransOut = new TransitionData(FADE, 0xFF000000, 0.7, new FlxPoint(0, 1),
-            {asset: diamond, width: 32, height: 32},
-            new FlxRect(-200, -200, FlxG.width * 1.4, FlxG.height * 1.4));
+            {asset: diamond, width: 32, height: 32}, new FlxRect(-200, -200, FlxG.width * 1.4, FlxG.height * 1.4));
     }
 
-    public static function onFocus() {
+    public static function onFocus():Void {
         _tickFocused = FlxG.game.ticks;
     }
 
-    private static function onStateSwitch() {
+    private static function onStateSwitch():Void {
         scaleMode.resetSize();
     }
 
-    public static function onUpdate() {
-        if (PlayerSettings.solo.controls.DEV_CONSOLE)
-            NativeAPI.allocConsole();
+    public static function onUpdate():Void {
+        if (PlayerSettings.solo.controls.FPS_COUNTER)
+            Framerate.debugMode = (Framerate.debugMode + 1) % 3;
     }
 
-    private static function onStateSwitchPost() {
+    private static function onStateSwitchPost():Void {
         MemoryUtil.clearMajor();
+    }
+
+    public static var noCwdFix:Bool = false;
+
+    public static function fixWorkingDirectory():Void {
+        #if windows
+            if (!noCwdFix && !sys.FileSystem.exists('manifest/default.json'))
+                Sys.setCwd(haxe.io.Path.directory(Sys.programPath()));
+        #elseif android
+            var getExternalFilesDir_jni = JNI.createStaticMethod(
+                "org/libsdl/app/SDLActivity",
+                "getExternalFilesDir",
+                "()Ljava/lang/String;"
+            );
+            var getObbDir_jni = JNI.createStaticMethod(
+                "org/libsdl/app/SDLActivity",
+                "getObbDir",
+                "()Ljava/lang/String;"
+            );
+
+            var sdkVersion = 0;
+            try {
+                var getSDK_INT_jni = JNI.createStaticMethod(
+                    "android/os/Build$VERSION",
+                    "SDK_INT",
+                    "()I"
+                );
+                sdkVersion = getSDK_INT_jni();
+            } catch(_) {}
+
+            var dir:String = sdkVersion > 30 ? getObbDir_jni() : getExternalFilesDir_jni();
+            Sys.setCwd(haxe.io.Path.addTrailingSlash(dir));
+        #elseif ios || switch
+            Sys.setCwd(haxe.io.Path.addTrailingSlash(openfl.filesystem.File.applicationStorageDirectory.nativePath));
+        #end
+    }
+
+    public static function get_timeSinceFocus():Float {
+        return (FlxG.game.ticks - _tickFocused) / 1000;
     }
 }
