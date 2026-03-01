@@ -53,17 +53,34 @@ jobs:
           "$JAVA_HOME" \
           | haxelib run lime setup android
 
+      - name: Set up Gradle
+        uses: gradle/gradle-build-action@v2
+        with:
+          gradle-version: 7.4.2
+
+      - name: Configure Gradle (5GB Safe Mode)
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.jvmargs=-Xmx5g -XX:MaxMetaspaceSize=1536m -Dfile.encoding=UTF-8" > ~/.gradle/gradle.properties
+          echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
+          echo "org.gradle.parallel=false" >> ~/.gradle/gradle.properties
+          echo "org.gradle.configureondemand=false" >> ~/.gradle/gradle.properties
+          echo "android.splits.abi.enable=false" >> ~/.gradle/gradle.properties
+          
+      - name: Limit Java heap globally
+        run: echo "JAVA_TOOL_OPTIONS=-Xmx5g" >> $GITHUB_ENV
+
       - name: Building Android Release APK
         run: haxelib run lime build android -release
 
       - name: Find APK
         run: find . -name "*.apk"
 
-      - name: Uploading Release APK
+      - name: Upload Release Apk
         uses: actions/upload-artifact@v4
         with:
-          name: Codename Engine Android Release
-          path: export/release/android/bin/*.apk
+          name: Android-Build
+          path: export/release/android/bin/app/build/outputs/apk/debug/*.apk
 
       - name: Clear existing cache
         uses: actions/github-script@v6
@@ -143,17 +160,34 @@ jobs:
           "$JAVA_HOME" \
           | haxelib run lime setup android
 
+      - name: Set up Gradle
+        uses: gradle/gradle-build-action@v2
+        with:
+          gradle-version: 7.4.2
+
+      - name: Configure Gradle (5GB Safe Mode)
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.jvmargs=-Xmx5g -XX:MaxMetaspaceSize=1536m -Dfile.encoding=UTF-8" > ~/.gradle/gradle.properties
+          echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
+          echo "org.gradle.parallel=false" >> ~/.gradle/gradle.properties
+          echo "org.gradle.configureondemand=false" >> ~/.gradle/gradle.properties
+          echo "android.splits.abi.enable=false" >> ~/.gradle/gradle.properties
+          
+      - name: Limit Java heap globally
+        run: echo "JAVA_TOOL_OPTIONS=-Xmx5g" >> $GITHUB_ENV
+
       - name: Building Android Debug APK
         run: haxelib run lime build android -debug
 
       - name: Find APK
         run: find . -name "*.apk"
 
-      - name: Uploading Debug APK
+      - name: Upload Debug Apk
         uses: actions/upload-artifact@v4
         with:
-          name: Codename Engine Android Debug
-          path: export/debug/android/bin/*.apk
+          name: Android-Build
+          path: export/debug/android/bin/app/build/outputs/apk/debug/*.apk
 
       - name: Clear existing debug cache
         uses: actions/github-script@v6
