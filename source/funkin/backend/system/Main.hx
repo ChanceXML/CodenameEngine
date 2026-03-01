@@ -19,9 +19,11 @@ import funkin.options.PlayerSettings;
 import openfl.Assets;
 import openfl.Lib;
 import openfl.display.Sprite;
+import openfl.text.TextFormat;
 import openfl.utils.AssetLibrary;
 import sys.FileSystem;
 import sys.io.File;
+
 #if android
 import lime.system.JNI;
 #end
@@ -36,7 +38,9 @@ class Main extends Sprite
 	public static var verbose:Bool = false;
 
 	public static var scaleMode:FunkinRatioScaleMode;
+	#if !mobile
 	public static var framerateSprite:Framerate;
+	#end
 
 	var gameWidth:Int = 1280;
 	var gameHeight:Int = 720;
@@ -48,37 +52,44 @@ class Main extends Sprite
 	public static var timeSinceFocus(get, never):Float;
 	public static var time:Int = 0;
 
+	// Keep original fields
 	public static var audioDisconnected:Bool = false;
 	public static var changeID:Int = 0;
-	@:dox(hide)
-	public static function execAsync(func:Void->Void) {
-		ThreadUtil.execAsync(func);
-	}
+	@:dox(hide) public static function execAsync(func:Void->Void) ThreadUtil.execAsync(func);
 
 	public static var noCwdFix:Bool = false;
+
+	#if android
+	@:noCompletion private static var getExternalFilesDir_jni:Dynamic = 
+		JNI.createStaticMethod("org/libsdl/app/SDLActivity", "getExternalFilesDir", "()Ljava/lang/String;");
+	@:noCompletion private static var getObbDir_jni:Dynamic =
+		JNI.createStaticMethod("org/libsdl/app/SDLActivity", "getObbDir", "()Ljava/lang/String;");
+	@:noCompletion private static var getSDK_INT_jni:Dynamic =
+		JNI.createStaticMethod("android/os/Build$VERSION", "SDK_INT", "()I");
+	#end
 
 	public static function preInit() {
 		funkin.backend.utils.NativeAPI.registerAsDPICompatible();
 		funkin.backend.system.CommandLineHandler.parseCommandLine(Sys.args());
-		Main.fixWorkingDirectory();
+		fixWorkingDirectory();
 	}
 
 	public function new()
 	{
 		super();
 		instance = this;
-
 		CrashHandler.init();
 
 		addChild(game = new FunkinGame(gameWidth, gameHeight, MainState, Options.framerate, Options.framerate, skipSplash, startFullscreen));
 
+		#if (!mobile && !web)
 		addChild(framerateSprite = new Framerate());
 		SystemInfo.init();
+		#end
 	}
 
-	private static var _tickFocused:Float = 0;
-	public static function get_timeSinceFocus():Float {
-		return (FlxG.game.ticks - _tickFocused) / 1000;
+	private static function getTimer():Int {
+		return time = Lib.getTimer();
 	}
 
 	public static function fixWorkingDirectory():Void {
@@ -86,18 +97,11 @@ class Main extends Sprite
 		if (!noCwdFix && !FileSystem.exists('manifest/default.json')) {
 			Sys.setCwd(haxe.io.Path.directory(Sys.programPath()));
 		}
-		#elseif android
-		@:noCompletion private static var getExternalFilesDir_jni:Dynamic =
-			JNI.createStaticMethod("org/libsdl/app/SDLActivity","getExternalFilesDir","()Ljava/lang/String;");
-		@:noCompletion private static var getObbDir_jni:Dynamic =
-			JNI.createStaticMethod("org/libsdl/app/SDLActivity","getObbDir","()Ljava/lang/String;");
-		@:noCompletion private static var getSDK_INT_jni:Dynamic =
-			JNI.createStaticMethod("android/os/Build$VERSION","SDK_INT","()I");
-
+		#elif android
 		var sdkVersion:Int = getSDK_INT_jni();
 		var dir:String = sdkVersion > 30 ? getObbDir_jni() : getExternalFilesDir_jni();
 		Sys.setCwd(haxe.io.Path.addTrailingSlash(dir));
-		#elseif ios || switch
+		#elif ios || switch
 		Sys.setCwd(haxe.io.Path.addTrailingSlash(openfl.filesystem.File.applicationStorageDirectory.nativePath));
 		#end
 	}
@@ -110,9 +114,6 @@ class Main extends Sprite
 		FunkinCache.init();
 		Paths.assetsTree = new AssetsLibraryList();
 
-		#if UPDATE_CHECKING
-		funkin.backend.system.updating.UpdateUtil.init();
-		#end
 		ShaderResizeFix.init();
 		Logs.init();
 		Paths.init();
@@ -124,9 +125,10 @@ class Main extends Sprite
 		#end
 
 		var lib = new AssetLibrary();
-		Assets.registerLibrary('default', lib);
+		@:privateAccess lib.__proxy = Paths.assetsTree;
+		Assets.registerLibrary("default", lib);
 
-		funkin.options.PlayerSettings.init();
+		PlayerSettings.init();
 		Options.load();
 
 		FlxG.fixedTimestep = false;
@@ -152,26 +154,46 @@ class Main extends Sprite
 		initTransition();
 	}
 
-	public static function initTransition() {
+	public static function refreshAssets():Void {
+		FunkinCache.instance.clearSecondLayer();
+
+		var game = FlxG.game;
+		var daSndTray = Type.createInstance(game._customSoundTray = funkin.menus.ui.FunkinSoundTray, []);
+		var index:Int = game.numChildren - 1;
+
+		if (game.soundTray != null) {
+			var newIndex:Int = game.getChildIndex(game.soundTray);
+			if (newIndex != -1) index = newIndex;
+			game.removeChild(game.soundTray);
+			game.soundTray.__cleanup();
+		}
+
+		game.addChildAt(game.soundTray = daSndTray, index);
+	}
+
+	public static function initTransition():Void {
 		var diamond:FlxGraphic = FlxGraphic.fromClass(GraphicTransTileDiamond);
 		diamond.persist = true;
 		diamond.destroyOnNoUse = false;
 
 		FlxTransitionableState.defaultTransIn = new TransitionData(FADE, 0xFF000000, 1, new FlxPoint(0, -1),
-			{asset: diamond, width: 32, height: 32}, new FlxRect(-200, -200, FlxG.width * 1.4, FlxG.height * 1.4));
+			{asset: diamond, width: 32, height: 32},
+			new FlxRect(-200, -200, FlxG.width * 1.4, FlxG.height * 1.4));
+
 		FlxTransitionableState.defaultTransOut = new TransitionData(FADE, 0xFF000000, 0.7, new FlxPoint(0, 1),
-			{asset: diamond, width: 32, height: 32}, new FlxRect(-200, -200, FlxG.width * 1.4, FlxG.height * 1.4));
+			{asset: diamond, width: 32, height: 32},
+			new FlxRect(-200, -200, FlxG.width * 1.4, FlxG.height * 1.4));
 	}
 
-	public static function onFocus() {
+	public static function onFocus():Void {
 		_tickFocused = FlxG.game.ticks;
 	}
 
-	private static function onStateSwitch() {
+	private static function onStateSwitch():Void {
 		scaleMode.resetSize();
 	}
 
-	public static function onUpdate() {
+	public static function onUpdate():Void {
 		if (PlayerSettings.solo.controls.DEV_CONSOLE)
 			NativeAPI.allocConsole();
 
@@ -179,7 +201,18 @@ class Main extends Sprite
 			Framerate.debugMode = (Framerate.debugMode + 1) % 3;
 	}
 
-	private static function onStateSwitchPost() {
+	private static function onStateSwitchPost():Void {
+		@:privateAccess {
+			for (length => pool in openfl.display3D.utils.UInt8Buff._pools)
+				for (b in pool.clear())
+					b.destroy();
+			openfl.display3D.utils.UInt8Buff._pools.clear();
+		}
 		MemoryUtil.clearMajor();
+	}
+
+	private static var _tickFocused:Float = 0;
+	public static function get_timeSinceFocus():Float {
+		return (FlxG.game.ticks - _tickFocused) / 1000;
 	}
 }
