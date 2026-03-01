@@ -13,13 +13,10 @@ jobs:
       - name: Pulling the new commit
         uses: actions/checkout@v4
 
-      - name: Install Haxe 4.3.7
-        run: |
-          wget https://github.com/HaxeFoundation/haxe/releases/download/4.3.7/haxe-4.3.7-linux64.tar.gz
-          tar -xzf haxe-4.3.7-linux64.tar.gz
-          mv haxe_* haxe
-          sudo mv haxe /usr/local/
-          echo "/usr/local/haxe" >> $GITHUB_PATH
+      - name: Setting up Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: 4.3.7
           
       - name: Setup Android SDK/NDK
         uses: android-actions/setup-android@v2
