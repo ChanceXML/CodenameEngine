@@ -154,17 +154,15 @@ class Main extends Sprite
 
     var gameInstance = FlxG.game;
 
-    var newSoundTray:FunkinSoundTray = Type.createInstance(funkin.menus.ui.FunkinSoundTray, []);
+    for (child in gameInstance.children) {
+        if (Std.is(child, FlxSoundTray)) {
+            gameInstance.removeChild(child);
+            (cast child:FlxSoundTray).__cleanup();
+        }
+    }
 
-    if (gameInstance.hasSoundTray()) {
-        var oldTray:FunkinSoundTray = gameInstance.getSoundTray();
-        var index:Int = gameInstance.getChildIndex(oldTray);
-        if (index == -1) index = gameInstance.numChildren - 1;
-
-        gameInstance.removeChild(oldTray);
-        oldTray.cleanup(); 
-	}
-    gameInstance.addSoundTrayAt(newSoundTray, index);
+    var newTray:FlxSoundTray = Type.createInstance(funkin.menus.ui.FunkinSoundTray, []);
+    gameInstance.addChild(newTray);
 	}
 
 	public static function initTransition():Void {
