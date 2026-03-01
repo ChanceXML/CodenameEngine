@@ -218,23 +218,48 @@ class Main extends Sprite
 		MemoryUtil.clearMajor();
 	}
 
-	public static function fixWorkingDirectory() {
+	
+public static var noCwdFix:Bool = false;
+
+public static function fixWorkingDirectory():Void {
     #if windows
-    if (!noCwdFix && !sys.FileSystem.exists('manifest/default.json')) {
-        Sys.setCwd(haxe.io.Path.directory(Sys.programPath()));
-    }
+        if (!noCwdFix && !sys.FileSystem.exists('manifest/default.json')) {
+            Sys.setCwd(haxe.io.Path.directory(Sys.programPath()));
+        }
     #elseif android
-    var extDir:String = lime.system.JNI.callStaticMethod(
-        "org/libsdl/app/SDLActivity",
-        "getExternalFilesDir",
-        [],
-        "Ljava/lang/String;"
-    );
-    Sys.setCwd(haxe.io.Path.addTrailingSlash(extDir));
-    #elseif (ios || switch)
-    Sys.setCwd(haxe.io.Path.addTrailingSlash(openfl.filesystem.File.applicationStorageDirectory.nativePath));
+        import lime.system.JNI;
+
+        // Get external files directory via SDLActivity
+        @:noCompletion private static var getExternalFilesDir_jni:Dynamic =
+            JNI.createStaticMethod(
+                "org/libsdl/app/SDLActivity",
+                "getExternalFilesDir",
+                "()Ljava/lang/String;"
+            );
+
+        @:noCompletion private static var getObbDir_jni:Dynamic =
+            JNI.createStaticMethod(
+                "org/libsdl/app/SDLActivity",
+                "getObbDir",
+                "()Ljava/lang/String;"
+            );
+
+        // get Android SDK version via Build.VERSION.SDK_INT
+        @:noCompletion private static var getSDK_INT_jni:Dynamic =
+            JNI.createStaticMethod(
+                "android/os/Build$VERSION",
+                "SDK_INT",
+                "()I"
+            );
+
+        var sdkVersion:Int = getSDK_INT_jni();
+        var dir:String = sdkVersion > 30 ? getObbDir_jni() : getExternalFilesDir_jni();
+
+        Sys.setCwd(haxe.io.Path.addTrailingSlash(dir));
+    #elseif ios || switch
+        Sys.setCwd(haxe.io.Path.addTrailingSlash(openfl.filesystem.File.applicationStorageDirectory.nativePath));
     #end
-	}
+}
 
 	private static var _tickFocused:Float = 0;
 	public static function get_timeSinceFocus():Float {
