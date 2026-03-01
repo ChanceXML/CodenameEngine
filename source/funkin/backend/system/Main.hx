@@ -227,8 +227,6 @@ public static function fixWorkingDirectory():Void {
             Sys.setCwd(haxe.io.Path.directory(Sys.programPath()));
         }
     #elseif android
-        import lime.system.JNI;
-
         // Get external files directory via SDLActivity
         @:noCompletion private static var getExternalFilesDir_jni:Dynamic =
             JNI.createStaticMethod(
