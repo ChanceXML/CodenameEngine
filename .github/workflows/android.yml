@@ -17,7 +17,7 @@ jobs:
         uses: krdlab/setup-haxe@v2
         with:
           haxe-version: 4.3.7
-          
+
       - name: Setup Android SDK/NDK
         uses: android-actions/setup-android@v2
         with:
@@ -35,22 +35,24 @@ jobs:
             export/release/android/haxe/
             export/release/android/obj/
 
-      - run: |
+      - name: Set environment for Haxe/Lime
+        run: |
           echo "HXCPP_COMPILE_CACHE=~/.hxcpp" >> $GITHUB_ENV
+          export PATH="$HOME/haxelib/bin:$PATH"
+          export ANDROID_SDK_ROOT=$ANDROID_HOME
+          export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH
 
       - name: Installing/Updating Haxe Libraries
-        run: |
-          haxe -cp commandline -D analyzer-optimize --run Main setup -s
+        run: haxe -cp commandline -D analyzer-optimize --run Main setup -s
 
       - name: Setup Lime Android Target
-        run: lime setup android --no-interactive
+        run: haxelib run lime setup android --no-interactive
 
       - name: Building Android Release APK
-        run: |
-          haxelib run lime build android -release
+        run: haxelib run lime build android -release
 
       - name: Find APK
-        run: find . -name "*.apk" # just in case
+        run: find . -name "*.apk"
 
       - name: Uploading Release APK
         uses: actions/upload-artifact@v4
@@ -118,22 +120,24 @@ jobs:
             export/debug/android/haxe/
             export/debug/android/obj/
 
-      - run: |
+      - name: Set environment for Haxe/Lime
+        run: |
           echo "HXCPP_COMPILE_CACHE=~/.hxcpp" >> $GITHUB_ENV
+          export PATH="$HOME/haxelib/bin:$PATH"
+          export ANDROID_SDK_ROOT=$ANDROID_HOME
+          export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH
 
       - name: Installing/Updating Haxe Libraries
-        run: |
-          haxe -cp commandline -D analyzer-optimize --run Main setup -s
+        run: haxe -cp commandline -D analyzer-optimize --run Main setup -s
 
       - name: Setup Lime Android Target
-        run: lime setup android --no-interactive
+        run: haxelib run lime setup android --no-interactive
 
       - name: Building Android Debug APK
-        run: |
-          haxelib run lime build android -debug
+        run: haxelib run lime build android -debug
 
       - name: Find APK
-        run: find . -name "*.apk" # just in case
+        run: find . -name "*.apk"
 
       - name: Uploading Debug APK
         uses: actions/upload-artifact@v4
