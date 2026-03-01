@@ -165,7 +165,7 @@ class Main extends Sprite
 		}
 
 		game.addChildAt(game.soundTray = daSndTray, index);
-	 }	
+	 }
 	
     var newTray:FlxSoundTray = Type.createInstance(funkin.menus.ui.FunkinSoundTray, []);
     gameInstance.addChild(newTray);
