@@ -122,10 +122,10 @@ jobs:
 
       - name: Set environment for Haxe/Lime
         run: |
-          echo "HXCPP_COMPILE_CACHE=~/.hxcpp" >> $GITHUB_ENV
-          export PATH="$HOME/haxelib/bin:$PATH"
-          export ANDROID_SDK_ROOT=$ANDROID_HOME
-          export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH
+         echo "HXCPP_COMPILE_CACHE=~/.hxcpp" >> $GITHUB_ENV
+         echo "ANDROID_SDK=$ANDROID_HOME" >> $GITHUB_ENV
+         echo "ANDROID_NDK_ROOT=$ANDROID_NDK_HOME" >> $GITHUB_ENV
+         export PATH="$HOME/haxelib/bin:$PATH"
 
       - name: Installing/Updating Haxe Libraries
         run: haxe -cp commandline -D analyzer-optimize --run Main setup -s
