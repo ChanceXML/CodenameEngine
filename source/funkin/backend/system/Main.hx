@@ -38,9 +38,7 @@ class Main extends Sprite
 	public static var verbose:Bool = false;
 
 	public static var scaleMode:FunkinRatioScaleMode;
-	#if !mobile
 	public static var framerateSprite:Framerate;
-	#end
 
 	var gameWidth:Int = 1280;
 	var gameHeight:Int = 720;
@@ -52,7 +50,6 @@ class Main extends Sprite
 	public static var timeSinceFocus(get, never):Float;
 	public static var time:Int = 0;
 
-	// Keep original fields
 	public static var audioDisconnected:Bool = false;
 	public static var changeID:Int = 0;
 	@:dox(hide) public static function execAsync(func:Void->Void) ThreadUtil.execAsync(func);
@@ -82,10 +79,8 @@ class Main extends Sprite
 
 		addChild(game = new FunkinGame(gameWidth, gameHeight, MainState, Options.framerate, Options.framerate, skipSplash, startFullscreen));
 
-		#if (!mobile && !web)
 		addChild(framerateSprite = new Framerate());
 		SystemInfo.init();
-		#end
 	}
 
 	private static function getTimer():Int {
@@ -97,11 +92,11 @@ class Main extends Sprite
 		if (!noCwdFix && !FileSystem.exists('manifest/default.json')) {
 			Sys.setCwd(haxe.io.Path.directory(Sys.programPath()));
 		}
-		#elif android
+		#elseif android
 		var sdkVersion:Int = getSDK_INT_jni();
 		var dir:String = sdkVersion > 30 ? getObbDir_jni() : getExternalFilesDir_jni();
 		Sys.setCwd(haxe.io.Path.addTrailingSlash(dir));
-		#elif ios || switch
+		#elseif ios || switch
 		Sys.setCwd(haxe.io.Path.addTrailingSlash(openfl.filesystem.File.applicationStorageDirectory.nativePath));
 		#end
 	}
