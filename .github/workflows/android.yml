@@ -45,8 +45,13 @@ jobs:
       - name: Installing/Updating Haxe Libraries
         run: haxe -cp commandline -D analyzer-optimize --run Main setup -s
 
-      - name: Setup Lime Android Target
-        run: haxelib run lime setup android --no-interactive
+      - name: Lime Setup Android
+        run: |
+          printf "%s\n%s\n%s\n" \
+          "$ANDROID_SDK_ROOT" \
+          "$ANDROID_NDK_ROOT" \
+          "$JAVA_HOME" \
+          | haxelib run lime setup android
 
       - name: Building Android Release APK
         run: haxelib run lime build android -release
@@ -130,8 +135,13 @@ jobs:
       - name: Installing/Updating Haxe Libraries
         run: haxe -cp commandline -D analyzer-optimize --run Main setup -s
 
-      - name: Setup Lime Android Target
-        run: haxelib run lime setup android --no-interactive
+      - name: Lime Setup Android
+        run: |
+          printf "%s\n%s\n%s\n" \
+          "$ANDROID_SDK_ROOT" \
+          "$ANDROID_NDK_ROOT" \
+          "$JAVA_HOME" \
+          | haxelib run lime setup android
 
       - name: Building Android Debug APK
         run: haxelib run lime build android -debug
