@@ -185,120 +185,91 @@ final class TranslationUtil
 	/**
 	 * Returns an array that specifies which languages were found.
 	 */
-public static function loadLanguage(lang:String):Map<String, IFormatInfo>
+public static function findAllLanguages():Void
 {
     #if TRANSLATIONS_SUPPORT
+    foundLanguages = [];
+    nameMap = getDefaultNameMap();
+    langConfigs = getDefaultLangConfigs();
 
-    FormatUtil.clear();
+    var mainPath:String = translationsMain("");
 
-    var mainPath:String = translationsMain(lang);
-    var leMap:Map<String, IFormatInfo> = [];
-    var translations:Array<TranslationPair> = [];
-
-    final NODE_NAMES = ["text", "trans", "lang", "string", "str"];
-
-    function parseXml(xml:Access, prefix:String = "")
-    {
-        for (node in xml.elements)
-        {
-            if (node.name == "group")
-            {
-                parseXml(node, prefix + (node.has.prefix ? node.att.prefix : ""));
-            }
-            else if (NODE_NAMES.contains(node.name))
-            {
-                translations.push({
-                    prefix: prefix,
-                    node: node
-                });
-            }
-        }
-    }
+    var seen = new Map<String, Bool>();
 
     for (file in Assets.list())
     {
         if (!file.startsWith("assets/" + mainPath)) continue;
-        if (Path.extension(file).toLowerCase() != "xml") continue;
 
-        var xml:Access = null;
+        var parts = file.split("/");
+        if (parts.length < 3) continue;
 
-        try
-        {
-            xml = new Access(Xml.parse(Assets.getText(file)));
+        var lang = parts[2];
+
+        if (seen.exists(lang)) continue;
+        if (!isAllowed(lang)) continue;
+
+        seen.set(lang, true);
+
+        var config = getDefaultConfig(lang);
+
+        var configPath = mainPath + lang + "/config.ini";
+        if (Assets.exists(configPath)) {
+            var c = IniUtil.parseAsset(configPath);
+            for (i => v in c)
+                for (key => value in v)
+                    config[key] = value;
         }
-        catch (e)
-        {
-            Logs.error('Error while parsing $file: ${Std.string(e)}', "Language");
-            continue;
-        }
 
-        if (xml == null) continue;
-        if (!xml.hasNode.language)
-        {
-            Logs.warn('File $file requires a <language> root element.', "Language");
-            continue;
-        }
+        var langName = config["name"];
 
-        var langNode = xml.node.language;
-        var prefix = langNode.getAtt("prefix").getDefault("");
-
-        parseXml(langNode, prefix);
+        nameMap.set(lang, langName);
+        langConfigs.set(lang, config);
+        foundLanguages.push(lang + "/" + langName);
     }
 
-    for (pair in translations)
-    {
-        var node = pair.node;
+    var defaultName = Flags.DEFAULT_LANGUAGE + "/" + getLanguageName(Flags.DEFAULT_LANGUAGE);
+    if (foundLanguages.contains(defaultName))
+        foundLanguages.remove(defaultName);
 
-        if (!node.has.id)
-        {
-            Logs.warn('A <${node.name}> node requires an ID attribute.', "Language");
-            continue;
-        }
+    foundLanguages.insert(0, defaultName);
 
-        var id = pair.prefix + node.att.id;
+    if (!nameMap.exists(curLanguage))
+        curLanguage = Flags.DEFAULT_LANGUAGE;
 
-        if (leMap.exists(id)) continue;
-
-        var value:String = node.has.string ? node.att.string : node.innerData;
-
-        if (node.getAtt("notrim").getDefault("true") != "true")
-            value = value.trim();
-
-        value = value.replace("\\n", "\n").replace("\r", "");
-
-        leMap.set(id, FormatUtil.get(value));
-    }
-
-    return leMap;
-
-    #else
-    return [];
+    Logs.trace("Found languages: " + foundLanguages.join(", "), "Language");
     #end
 }
+
 	/**
 	 * Returns a map of translations based on its XML.
 	 */
 	public static function loadLanguage(lang:String):Map<String, IFormatInfo>
 	{
-		#if TRANSLATIONS_SUPPORT
-		FormatUtil.clear(); // Clean up the format cache
-		var mainPath:String = translationsMain(lang);
-		var leMap:Map<String, IFormatInfo> = [];
-		var translations:Array<TranslationPair> = [];
+		// Android + Desktop compatible asset loading
+		for (file in Assets.list())
+      {
+        if (!file.startsWith("assets/" + mainPath)) continue;
+        if (Path.extension(file).toLowerCase() != "xml") continue;
 
-		final NODE_NAMES = ["text", "trans", "lang", "string", "str"];
-		function parseXml(xml:Access, prefix:String = "") {
-			for(node in xml.elements) {
-				if (node.name == "group") // Cosmetic name
-					parseXml(node, prefix + (node.has.prefix ? node.att.prefix : ""));
-				else if(NODE_NAMES.contains(node.name))
-					translations.push({
-						prefix: prefix,
-						node: node
-					});
-			}
-		}
+        var xml:Access = null;
 
+        try {
+        xml = new Access(Xml.parse(Assets.getText(file)));
+      } catch (e) {
+        Logs.error('Error while parsing $file: ${Std.string(e)}', "Language");
+        continue;
+      }
+     if (xml == null) continue;
+     if (!xml.hasNode.language) {
+        Logs.warn('File $file requires a <language> root element.', "Language");
+        continue;
+    }
+
+    var langNode = xml.node.language;
+    var prefix = langNode.getAtt("prefix").getDefault("");
+
+    parseXml(langNode, prefix);
+}
 		// todo make it load the default languages in a second string map
 
 		for(mod in ModsFolder.getLoadedModsLibs(true)) for(file in mod.getFiles("assets/" + mainPath).sortAlphabetically().map((v)->'$mainPath/$v')) {
