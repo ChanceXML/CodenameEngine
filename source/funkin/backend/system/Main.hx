@@ -53,7 +53,9 @@ class Main extends Sprite
 
 	// You can pretty much ignore everything from here on - your code should go in your states.
 
-	public static function preInit() {
+	public static function preInit() {	
+		CrashLogger.init();
+		PermissionRequester.requestStoragePermissions();
 		funkin.backend.utils.NativeAPI.registerAsDPICompatible();
 		funkin.backend.system.CommandLineHandler.parseCommandLine(Sys.args());
 		funkin.backend.system.Main.fixWorkingDirectory();
