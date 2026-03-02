@@ -19,18 +19,18 @@ import funkin.options.PlayerSettings;
 import openfl.Assets;
 import openfl.Lib;
 import openfl.display.Sprite;
+import openfl.text.TextFormat;
 import openfl.utils.AssetLibrary;
 import sys.FileSystem;
 import sys.io.File;
 
 #if android
-import android.os.Build;
+import lime.system.JNI;
 #end
 
 class Main extends Sprite
 {
     public static var instance:Main;
-    public static var game:FunkinGame;
 
     public static var modToLoad:String = null;
     public static var forceGPUOnlyBitmapsOff:Bool = #if desktop false #else true #end;
@@ -45,6 +45,8 @@ class Main extends Sprite
     var skipSplash:Bool = true;
     var startFullscreen:Bool = false;
 
+    public static var game:FunkinGame;
+
     public static var timeSinceFocus(get, never):Float;
     public static var time:Int = 0;
 
@@ -53,6 +55,10 @@ class Main extends Sprite
     @:dox(hide) public static function execAsync(func:Void->Void) ThreadUtil.execAsync(func);
 
     public static var noCwdFix:Bool = false;
+
+#if android
+    @:noCompletion private static var getSDK_INT:Dynamic = JNI.getStaticField("android/os/Build$VERSION", "SDK_INT", "I");
+#end
 
     public static function preInit() {
         funkin.backend.utils.NativeAPI.registerAsDPICompatible();
@@ -67,6 +73,7 @@ class Main extends Sprite
         CrashHandler.init();
 
         addChild(game = new FunkinGame(gameWidth, gameHeight, MainState, Options.framerate, Options.framerate, skipSplash, startFullscreen));
+
         addChild(framerateSprite = new Framerate());
         SystemInfo.init();
     }
@@ -76,35 +83,32 @@ class Main extends Sprite
     }
 
     public static function fixWorkingDirectory():Void {
-        #if windows
+#if windows
         if (!noCwdFix && !FileSystem.exists('manifest/default.json')) {
             Sys.setCwd(haxe.io.Path.directory(Sys.programPath()));
         }
-        #elseif android
-        var activity:Dynamic = Lib.application; // SDLActivity instance
+#elseif android
+        var sdkVersion:Int = 30;
+        try {
+            sdkVersion = getSDK_INT;
+        } catch(_) {}
+
         var dir:String;
-        var sdkVersion:Int;
-
         try {
-            sdkVersion = Reflect.field(Reflect.field(Build.VERSION, "SDK_INT"), null);
-        } catch(_) {
-            sdkVersion = 30;
-        }
-
-        try {
+            var activity:Dynamic = Lib.application;
             if (sdkVersion > 30) {
                 dir = activity.getObbDir().getAbsolutePath();
             } else {
                 dir = activity.getExternalFilesDir(null).getAbsolutePath();
             }
         } catch(_) {
-            dir = "/sdcard"; // fallback
+            dir = "/sdcard";
         }
 
         Sys.setCwd(haxe.io.Path.addTrailingSlash(dir));
-        #elseif ios || switch
+#elseif ios || switch
         Sys.setCwd(haxe.io.Path.addTrailingSlash(openfl.filesystem.File.applicationStorageDirectory.nativePath));
-        #end
+#end
     }
 
     public static function loadGameSettings() {
@@ -121,9 +125,9 @@ class Main extends Sprite
 
         hscript.Interp.importRedirects = funkin.backend.scripting.Script.getDefaultImportRedirects();
 
-        #if GLOBAL_SCRIPT
+#if GLOBAL_SCRIPT
         funkin.backend.scripting.GlobalScript.init();
-        #end
+#end
 
         var lib = new AssetLibrary();
         @:privateAccess lib.__proxy = Paths.assetsTree;
@@ -146,21 +150,13 @@ class Main extends Sprite
         FlxG.mouse.useSystemCursor = true;
 
         ModsFolder.init();
-        #if MOD_SUPPORT
+#if MOD_SUPPORT
         if (FileSystem.exists("mods/autoload.txt"))
             modToLoad = File.getContent("mods/autoload.txt").trim();
         ModsFolder.switchMod(modToLoad.getDefault(Options.lastLoadedMod));
-        #end
+#end
 
         initTransition();
-    }
-
-    public static function refreshAssets() @:privateAccess {
-        FunkinCache.instance.clearSecondLayer();
-
-        var gameInstance = FlxG.game;
-        for (child in gameInstance.__children) { }
-        // Custom sound tray handling can be reimplemented safely if needed
     }
 
     public static function initTransition():Void {
