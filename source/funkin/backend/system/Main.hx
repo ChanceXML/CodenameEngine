@@ -214,6 +214,19 @@ class Main extends Sprite
 
 		MemoryUtil.clearMajor();
 	}
+
+	public static var noCwdFix:Bool = false;
+
+    public static function fixWorkingDirectory() {
+    #if windows
+    if (!noCwdFix && !sys.FileSystem.exists('manifest/default.json')) {
+        Sys.setCwd(haxe.io.Path.directory(Sys.programPath()));
+    }
+    #elseif (ios || switch)
+    Sys.setCwd(haxe.io.Path.addTrailingSlash(openfl.filesystem.File.applicationStorageDirectory.nativePath));
+    #end
+}
+	
 	private static var _tickFocused:Float = 0;
 	public static function get_timeSinceFocus():Float {
 		return (FlxG.game.ticks - _tickFocused) / 1000;
