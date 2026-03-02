@@ -71,23 +71,23 @@ class Main extends Sprite
 		return time = Lib.getTimer();
 	}
 
-	// ✅ FIXED ANDROID WORKING DIRECTORY
+	
 	public static function fixWorkingDirectory():Void {
-		#if windows
-		if (!noCwdFix && !FileSystem.exists('manifest/default.json')) {
-			Sys.setCwd(haxe.io.Path.directory(Sys.programPath()));
-		}
-		#elseif android
-		try {
-			var activity:Dynamic = Lib.current.stage.application;
-			var dir:String = activity.getExternalFilesDir(null).getAbsolutePath();
-			Sys.setCwd(haxe.io.Path.addTrailingSlash(dir));
-		} catch (e:Dynamic) {
-			Sys.setCwd("/sdcard/");
-		}
-		#elseif ios || switch
-		Sys.setCwd(haxe.io.Path.addTrailingSlash(openfl.filesystem.File.applicationStorageDirectory.nativePath));
-		#end
+    #if windows
+    if (!noCwdFix && !FileSystem.exists('manifest/default.json')) {
+        Sys.setCwd(haxe.io.Path.directory(Sys.programPath()));
+    }
+    #elseif android
+    try {
+        var activity:Dynamic = lime.app.Application.current.window;
+        var dir:String = activity.getExternalFilesDir(null).getAbsolutePath();
+        Sys.setCwd(haxe.io.Path.addTrailingSlash(dir));
+    } catch (e:Dynamic) {
+        Sys.setCwd("/sdcard/");
+    }
+    #elseif ios || switch
+    Sys.setCwd(haxe.io.Path.addTrailingSlash(openfl.filesystem.File.applicationStorageDirectory.nativePath));
+    #end
 	}
 
 	public static function loadGameSettings() {
