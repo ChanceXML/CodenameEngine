@@ -52,7 +52,6 @@ class Main extends Sprite
 	// You can pretty much ignore everything from here on - your code should go in your states.
 
 	public static function preInit() {	
-		CrashLogger.init();
 		funkin.backend.utils.NativeAPI.registerAsDPICompatible();
 		funkin.backend.system.CommandLineHandler.parseCommandLine(Sys.args());
 		funkin.backend.system.Main.fixWorkingDirectory();
@@ -63,8 +62,6 @@ class Main extends Sprite
 		super();
 
 		instance = this;
-
-		CrashHandler.init();
 
 		addChild(game = new FunkinGame(gameWidth, gameHeight, MainState, Options.framerate, Options.framerate, skipSplash, startFullscreen));
 
