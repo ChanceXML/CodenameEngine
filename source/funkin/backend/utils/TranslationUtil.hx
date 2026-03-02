@@ -244,79 +244,86 @@ public static function findAllLanguages():Void
 	 * Returns a map of translations based on its XML.
 	 */
 	public static function loadLanguage(lang:String):Map<String, IFormatInfo>
-	{
-		// android
-		for (file in Assets.list())
-      {
+{
+    #if TRANSLATIONS_SUPPORT
+
+    FormatUtil.clear();
+
+    var mainPath:String = translationsMain(lang);
+    var leMap:Map<String, IFormatInfo> = [];
+    var translations:Array<TranslationPair> = [];
+
+    final NODE_NAMES = ["text", "trans", "lang", "string", "str"];
+
+    function parseXml(xml:Access, prefix:String = "")
+    {
+        for (node in xml.elements)
+        {
+            if (node.name == "group")
+                parseXml(node, prefix + (node.has.prefix ? node.att.prefix : ""));
+            else if (NODE_NAMES.contains(node.name))
+                translations.push({
+                    prefix: prefix,
+                    node: node
+                });
+        }
+    }
+
+    
+    for (file in Assets.list())
+    {
         if (!file.startsWith("assets/" + mainPath)) continue;
         if (Path.extension(file).toLowerCase() != "xml") continue;
 
         var xml:Access = null;
 
         try {
-        xml = new Access(Xml.parse(Assets.getText(file)));
-      } catch (e) {
-        Logs.error('Error while parsing $file: ${Std.string(e)}', "Language");
-        continue;
-      }
-     if (xml == null) continue;
-     if (!xml.hasNode.language) {
-        Logs.warn('File $file requires a <language> root element.', "Language");
-        continue;
+            xml = new Access(Xml.parse(Assets.getText(file)));
+        } catch (e) {
+            Logs.error('Error while parsing $file: ${Std.string(e)}', "Language");
+            continue;
+        }
+
+        if (!xml.hasNode.language) {
+            Logs.warn('File $file requires a <language> root element.', "Language");
+            continue;
+        }
+
+        var langNode = xml.node.language;
+        var prefix = langNode.getAtt("prefix").getDefault("");
+
+        parseXml(langNode, prefix);
     }
 
-    var langNode = xml.node.language;
-    var prefix = langNode.getAtt("prefix").getDefault("");
+    for (pair in translations)
+    {
+        var node = pair.node;
 
-    parseXml(langNode, prefix);
-	  }
-        for(mod in ModsFolder.getLoadedModsLibs(true)) 
-		for(file in mod.getFiles("assets/" + mainPath).sortAlphabetically().map((v)->'$mainPath/$v')) {
-			
-			var xml:Access = null;
-			try xml = new Access(Xml.parse(Assets.getText("assets/" + file)))
-			catch(e) Logs.error('Error while parsing $file: ${Std.string(e)}', "Language");
+        if (!node.has.id) {
+            Logs.warn('A <${node.name}> node requires an ID attribute.', "Language");
+            continue;
+        }
 
-			if (xml == null) continue;
-			if (!xml.hasNode.language) {
-				Logs.warn('File $file requires a <language> root element.', "Language");
-				continue;
-			}
+        var id = pair.prefix + node.att.id;
 
-			var langNode = xml.node.language;
-			var prefix = langNode.getAtt("prefix").getDefault("");
+        if (leMap.exists(id)) continue;
 
-			//if (langNode.has.name) {
-			//	getConfig(lang).set("name", langNode.att.name);
-			//}
+        var value:String = node.has.string ? node.att.string : node.innerData;
 
-			parseXml(langNode, prefix);
-		}
+        if (node.getAtt("notrim").getDefault("true") != "true")
+            value = value.trim();
 
-		for(pair in translations) {
-			var node = pair.node;
-			if (!node.has.id) {
-				Logs.warn('A <${node.name}> node requires an ID attribute.', "Language");
-				continue;
-			}
-			var prefix = pair.prefix;
+        value = value.replace("\\n", "\n").replace("\r", "");
 
-			var id = prefix + node.att.id;
+        leMap.set(id, FormatUtil.get(value));
+    }
 
-			if(leMap.exists(id)) continue;
-			var value:String = node.has.string ? node.att.string : node.innerData;
-			if(node.getAtt("notrim").getDefault("true") != "true") value = value.trim();
-			value = value.replace("\\n", "\n").replace("\r", "");
-			leMap.set(id, FormatUtil.get(value));
-			//leMap.set(id, FormatUtil.getStr("{" + id + "}"));
-			//Logs.trace("Added " + id + " -> `" + value + "`", "Language");
-		}
+    return leMap;
 
-		return leMap;
-		#else
-		return [];
-		#end
-	}
+    #else
+    return [];
+    #end
+}
 
 	public static function getLanguageName(lang:String):String {
 		return nameMap.exists(lang) ? nameMap.get(lang) : lang;
