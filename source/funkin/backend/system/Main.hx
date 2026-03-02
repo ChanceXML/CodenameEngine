@@ -53,7 +53,6 @@ class Main extends Sprite
 
 	public static function preInit() {	
 		CrashLogger.init();
-		PermissionRequester.requestStoragePermissions();
 		funkin.backend.utils.NativeAPI.registerAsDPICompatible();
 		funkin.backend.system.CommandLineHandler.parseCommandLine(Sys.args());
 		funkin.backend.system.Main.fixWorkingDirectory();
