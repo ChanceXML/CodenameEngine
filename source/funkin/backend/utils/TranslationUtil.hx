@@ -245,7 +245,7 @@ public static function findAllLanguages():Void
 	 */
 	public static function loadLanguage(lang:String):Map<String, IFormatInfo>
 	{
-		// Android + Desktop compatible asset loading
+		// android
 		for (file in Assets.list())
       {
         if (!file.startsWith("assets/" + mainPath)) continue;
@@ -269,13 +269,10 @@ public static function findAllLanguages():Void
     var prefix = langNode.getAtt("prefix").getDefault("");
 
     parseXml(langNode, prefix);
-}
-		// todo make it load the default languages in a second string map
-
-		for(mod in ModsFolder.getLoadedModsLibs(true)) for(file in mod.getFiles("assets/" + mainPath).sortAlphabetically().map((v)->'$mainPath/$v')) {
-			if(Path.extension(file).toLowerCase() != "xml") continue;
-
-			// Parse the XML
+	  }
+        for(mod in ModsFolder.getLoadedModsLibs(true)) 
+		for(file in mod.getFiles("assets/" + mainPath).sortAlphabetically().map((v)->'$mainPath/$v')) {
+			
 			var xml:Access = null;
 			try xml = new Access(Xml.parse(Assets.getText("assets/" + file)))
 			catch(e) Logs.error('Error while parsing $file: ${Std.string(e)}', "Language");
@@ -309,8 +306,7 @@ public static function findAllLanguages():Void
 			if(leMap.exists(id)) continue;
 			var value:String = node.has.string ? node.att.string : node.innerData;
 			if(node.getAtt("notrim").getDefault("true") != "true") value = value.trim();
-			// make it so you can escape the backslash
-			value = value.replace("\\n", "\n").replace("\r", ""); // remove stupid windows line breaks and convert newline literals to newlines
+			value = value.replace("\\n", "\n").replace("\r", "");
 			leMap.set(id, FormatUtil.get(value));
 			//leMap.set(id, FormatUtil.getStr("{" + id + "}"));
 			//Logs.trace("Added " + id + " -> `" + value + "`", "Language");
@@ -321,8 +317,6 @@ public static function findAllLanguages():Void
 		return [];
 		#end
 	}
-
-	// Utils
 
 	public static function getLanguageName(lang:String):String {
 		return nameMap.exists(lang) ? nameMap.get(lang) : lang;
