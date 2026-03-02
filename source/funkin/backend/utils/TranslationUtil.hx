@@ -185,7 +185,7 @@ final class TranslationUtil
 	/**
 	 * Returns an array that specifies which languages were found.
 	 */
-	public static function findAllLanguages():Void
+public static function findAllLanguages():Void
 {
     #if TRANSLATIONS_SUPPORT
     foundLanguages = [];
@@ -203,7 +203,7 @@ final class TranslationUtil
         var parts = file.split("/");
         if (parts.length < 3) continue;
 
-        var lang = parts[2]; // assets/languages/<lang>/
+        var lang = parts[2];
 
         if (seen.exists(lang)) continue;
         if (!isAllowed(lang)) continue;
@@ -227,25 +227,18 @@ final class TranslationUtil
         foundLanguages.push(lang + "/" + langName);
     }
 
-    // Ensure default language first
     var defaultName = Flags.DEFAULT_LANGUAGE + "/" + getLanguageName(Flags.DEFAULT_LANGUAGE);
-    if(foundLanguages.contains(defaultName)) foundLanguages.remove(defaultName);
+    if (foundLanguages.contains(defaultName))
+        foundLanguages.remove(defaultName);
+
     foundLanguages.insert(0, defaultName);
 
-    if(!nameMap.exists(curLanguage)) curLanguage = Flags.DEFAULT_LANGUAGE;
+    if (!nameMap.exists(curLanguage))
+        curLanguage = Flags.DEFAULT_LANGUAGE;
 
     Logs.trace("Found languages: " + foundLanguages.join(", "), "Language");
     #end
 }
-		// Ensure that the default language is always first
-		var defaultName = Flags.DEFAULT_LANGUAGE + "/" + getLanguageName(Flags.DEFAULT_LANGUAGE);
-		if(foundLanguages.contains(defaultName)) foundLanguages.remove(defaultName);
-		foundLanguages.insert(0, defaultName);
-
-		if(!nameMap.exists(curLanguage)) curLanguage = Flags.DEFAULT_LANGUAGE;
-		Logs.trace("Found languages: " + foundLanguages.join(", "), "Language");
-		#end
-	}
 
 	/**
 	 * Returns a map of translations based on its XML.
