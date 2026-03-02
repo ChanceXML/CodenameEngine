@@ -186,40 +186,57 @@ final class TranslationUtil
 	 * Returns an array that specifies which languages were found.
 	 */
 	public static function findAllLanguages():Void
-	{
-		#if TRANSLATIONS_SUPPORT
-		foundLanguages = [];
-		nameMap = getDefaultNameMap();
-		langConfigs = getDefaultLangConfigs();
-		var mainPath:String = translationsMain("");
-		trace("Folders found: " + Paths.assetsTree.getFolders("assets/" + mainPath));
-		// test
-		var langName:String = null;
-		for (lang in Paths.assetsTree.getFolders("assets/" + mainPath)) {
-			if (!isAllowed(lang)) continue;
+{
+    #if TRANSLATIONS_SUPPORT
+    foundLanguages = [];
+    nameMap = getDefaultNameMap();
+    langConfigs = getDefaultLangConfigs();
 
-			var path:String = Path.join([mainPath, lang, "config.ini"]);
-			var config = getDefaultConfig(lang);
+    var mainPath:String = translationsMain("");
 
-			if(Assets.exists(path)) {
-				var c = IniUtil.parseAsset(path);
-				for (i => v in c)
-					for (key => value in v)
-						config[key] = value;
-			} else { // if there was no config.ini, use the file name as the language name
-				for(file in Paths.getFolderContent(mainPath + lang).sortAlphabetically()) {
-					if(Path.extension(file) == "xml") {
-						config["name"] = Path.withoutExtension(file);
-						break;
-					}
-				}
-			}
-			langName = config["name"];
-			nameMap.set(lang, langName);
-			langConfigs.set(lang, config);
-			foundLanguages.push('$lang/$langName');
-		}
+    var seen = new Map<String, Bool>();
 
+    for (file in Assets.list())
+    {
+        if (!file.startsWith("assets/" + mainPath)) continue;
+
+        var parts = file.split("/");
+        if (parts.length < 3) continue;
+
+        var lang = parts[2]; // assets/languages/<lang>/
+
+        if (seen.exists(lang)) continue;
+        if (!isAllowed(lang)) continue;
+
+        seen.set(lang, true);
+
+        var config = getDefaultConfig(lang);
+
+        var configPath = mainPath + lang + "/config.ini";
+        if (Assets.exists(configPath)) {
+            var c = IniUtil.parseAsset(configPath);
+            for (i => v in c)
+                for (key => value in v)
+                    config[key] = value;
+        }
+
+        var langName = config["name"];
+
+        nameMap.set(lang, langName);
+        langConfigs.set(lang, config);
+        foundLanguages.push(lang + "/" + langName);
+    }
+
+    // Ensure default language first
+    var defaultName = Flags.DEFAULT_LANGUAGE + "/" + getLanguageName(Flags.DEFAULT_LANGUAGE);
+    if(foundLanguages.contains(defaultName)) foundLanguages.remove(defaultName);
+    foundLanguages.insert(0, defaultName);
+
+    if(!nameMap.exists(curLanguage)) curLanguage = Flags.DEFAULT_LANGUAGE;
+
+    Logs.trace("Found languages: " + foundLanguages.join(", "), "Language");
+    #end
+}
 		// Ensure that the default language is always first
 		var defaultName = Flags.DEFAULT_LANGUAGE + "/" + getLanguageName(Flags.DEFAULT_LANGUAGE);
 		if(foundLanguages.contains(defaultName)) foundLanguages.remove(defaultName);
