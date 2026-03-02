@@ -187,6 +187,8 @@ final class TranslationUtil
 	 */
 	public static function findAllLanguages():Void
 	{
+		trace("Folders found: " + Paths.assetsTree.getFolders("assets/" + mainPath));
+		// test
 		#if TRANSLATIONS_SUPPORT
 		foundLanguages = [];
 		nameMap = getDefaultNameMap();
