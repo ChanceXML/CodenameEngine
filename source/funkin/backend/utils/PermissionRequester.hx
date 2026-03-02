@@ -1,7 +1,7 @@
 package funkin.backend.utils;
 
 #if android
-import openfl.utils.JNI;
+import lime.app.Application;
 #end
 
 class PermissionRequester
@@ -11,14 +11,12 @@ class PermissionRequester
         #if android
         try
         {
-            var requestPerms = JNI.createStaticMethod(
-                "org.haxe.lime.GameActivity",
-                "requestPermissions",
-                "(Ljava/lang/String;)V"
-            );
+            var perms = [
+                "android.permission.WRITE_EXTERNAL_STORAGE",
+                "android.permission.READ_EXTERNAL_STORAGE"
+            ];
 
-            requestPerms("android.permission.WRITE_EXTERNAL_STORAGE");
-            requestPerms("android.permission.READ_EXTERNAL_STORAGE");
+            Application.current.window.requestPermissions(perms);
         }
         catch (e:Dynamic)
         {
