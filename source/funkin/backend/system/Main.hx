@@ -1,18 +1,16 @@
 package funkin.backend.system;
 
+import flixel.FlxG;
 import flixel.addons.transition.FlxTransitionSprite.GraphicTransTileDiamond;
 import flixel.addons.transition.FlxTransitionableState;
 import flixel.addons.transition.TransitionData;
 import flixel.graphics.FlxGraphic;
 import flixel.math.FlxPoint;
 import flixel.math.FlxRect;
-import flixel.system.ui.FlxSoundTray;
-import funkin.backend.assets.AssetSource;
 import funkin.backend.assets.AssetsLibraryList;
 import funkin.backend.assets.ModsFolder;
 import funkin.backend.system.framerate.Framerate;
 import funkin.backend.system.framerate.SystemInfo;
-import funkin.backend.system.modules.*;
 import funkin.backend.utils.ThreadUtil;
 import funkin.editors.SaveWarning;
 import funkin.options.PlayerSettings;
@@ -22,10 +20,6 @@ import openfl.display.Sprite;
 import openfl.utils.AssetLibrary;
 import sys.FileSystem;
 import sys.io.File;
-
-#if android
-import lime.system.JNI;
-#end
 
 class Main extends Sprite
 {
@@ -55,15 +49,6 @@ class Main extends Sprite
 
 	public static var noCwdFix:Bool = false;
 
-	#if android
-	@:noCompletion private static var getExternalFilesDir_jni:Dynamic = 
-		JNI.createStaticMethod("org/libsdl/app/SDLActivity", "getExternalFilesDir", "()Ljava/lang/String;");
-	@:noCompletion private static var getObbDir_jni:Dynamic =
-		JNI.createStaticMethod("org/libsdl/app/SDLActivity", "getObbDir", "()Ljava/lang/String;");
-	@:noCompletion private static var getSDK_INT:Dynamic =
-		JNI.createStaticField("android/os/Build$VERSION", "SDK_INT", "I");
-	#end
-
 	public static function preInit() {
 		funkin.backend.utils.NativeAPI.registerAsDPICompatible();
 		funkin.backend.system.CommandLineHandler.parseCommandLine(Sys.args());
@@ -86,15 +71,20 @@ class Main extends Sprite
 		return time = Lib.getTimer();
 	}
 
+	// ✅ FIXED ANDROID WORKING DIRECTORY
 	public static function fixWorkingDirectory():Void {
 		#if windows
 		if (!noCwdFix && !FileSystem.exists('manifest/default.json')) {
 			Sys.setCwd(haxe.io.Path.directory(Sys.programPath()));
 		}
 		#elseif android
-		var sdkVersion:Int = getSDK_INT();
-		var dir:String = sdkVersion > 30 ? getObbDir_jni() : getExternalFilesDir_jni();
-		Sys.setCwd(haxe.io.Path.addTrailingSlash(dir));
+		try {
+			var activity:Dynamic = Lib.current.stage.application;
+			var dir:String = activity.getExternalFilesDir(null).getAbsolutePath();
+			Sys.setCwd(haxe.io.Path.addTrailingSlash(dir));
+		} catch (e:Dynamic) {
+			Sys.setCwd("/sdcard/");
+		}
 		#elseif ios || switch
 		Sys.setCwd(haxe.io.Path.addTrailingSlash(openfl.filesystem.File.applicationStorageDirectory.nativePath));
 		#end
@@ -139,31 +129,14 @@ class Main extends Sprite
 		FlxG.mouse.useSystemCursor = true;
 
 		ModsFolder.init();
+
 		#if MOD_SUPPORT
 		if (FileSystem.exists("mods/autoload.txt"))
 			modToLoad = File.getContent("mods/autoload.txt").trim();
-		ModsFolder.switchMod(modToLoad.getDefault(Options.lastLoadedMod));
+		ModsFolder.switchMod(modToLoad != null ? modToLoad : Options.lastLoadedMod);
 		#end
 
 		initTransition();
-	}
-
-	public static function refreshAssets() @:privateAccess {
-		FunkinCache.instance.clearSecondLayer();
-
-		var game = FlxG.game;
-		var daSndTray = Type.createInstance(funkin.menus.ui.FunkinSoundTray, []);
-		var index:Int = game.numChildren - 1;
-
-		if(game.soundTray != null)
-		{
-			var newIndex:Int = game.getChildIndex(game.soundTray);
-			if(newIndex != -1) index = newIndex;
-			game.removeChild(game.soundTray);
-			game.soundTray.__cleanup();
-		}
-
-		game.addChildAt(game.soundTray = daSndTray, index);
 	}
 
 	public static function initTransition():Void {
@@ -197,12 +170,6 @@ class Main extends Sprite
 	}
 
 	private static function onStateSwitchPost():Void {
-		@:privateAccess {
-			for (length => pool in openfl.display3D.utils.UInt8Buff._pools)
-				for (b in pool.clear())
-					b.destroy();
-			openfl.display3D.utils.UInt8Buff._pools.clear();
-		}
 		MemoryUtil.clearMajor();
 	}
 
