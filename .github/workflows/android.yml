@@ -71,7 +71,7 @@ jobs:
         run: echo "JAVA_TOOL_OPTIONS=-Xmx5g" >> $GITHUB_ENV
 
       - name: Install Extension-AndroidTools
-        run: haxelib install extension-androidtools
+        run: haxelib install extension-androidtools --skip-dependencies
 
       - name: Building Android Release APK
         run: haxelib run lime build android -release
