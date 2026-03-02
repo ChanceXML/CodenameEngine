@@ -198,7 +198,7 @@ public static function findAllLanguages():Void
 
     for (file in Assets.list())
     {
-        if (!file.startsWith("assets/" + mainPath)) continue;
+        if (!file.startsWith(mainPath)) continue;
 
         var parts = file.split("/");
         if (parts.length < 3) continue;
