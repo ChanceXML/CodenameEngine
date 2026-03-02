@@ -187,13 +187,13 @@ final class TranslationUtil
 	 */
 	public static function findAllLanguages():Void
 	{
-		trace("Folders found: " + Paths.assetsTree.getFolders("assets/" + mainPath));
-		// test
 		#if TRANSLATIONS_SUPPORT
 		foundLanguages = [];
 		nameMap = getDefaultNameMap();
 		langConfigs = getDefaultLangConfigs();
 		var mainPath:String = translationsMain("");
+		trace("Folders found: " + Paths.assetsTree.getFolders("assets/" + mainPath));
+		// test
 		var langName:String = null;
 		for (lang in Paths.assetsTree.getFolders("assets/" + mainPath)) {
 			if (!isAllowed(lang)) continue;
