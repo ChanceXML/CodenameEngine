@@ -45,54 +45,77 @@ final class TranslationUtil {
         return value;
     }
 
-    public static function findAllLanguages():Void {
-        #if TRANSLATIONS_SUPPORT
-        foundLanguages = [];
-        nameMap = [Flags.DEFAULT_LANGUAGE => Flags.DEFAULT_LANGUAGE_NAME];
-        langConfigs = [Flags.DEFAULT_LANGUAGE => getDefaultConfig(Flags.DEFAULT_LANGUAGE)];
+    public static function findAllLanguages():Void
+{
+	#if TRANSLATIONS_SUPPORT
+	foundLanguages = [];
+	nameMap = getDefaultNameMap();
+	langConfigs = getDefaultLangConfigs();
 
-        var seen = new Map<String, Bool>();
+	var mainPath:String = translationsMain("");
+	var langName:String = null;
 
-        for (file in Assets.list()) {
-            if (file == null || !file.startsWith(LANG_FOLDER)) continue;
+	var folders:Array<String> = [];
 
-            var parts = file.split("/");
-            if (parts.length < 4) continue;
+	try {
+		folders = Paths.assetsTree.getFolders("assets/" + mainPath);
+	} catch (e:Dynamic) {
+		Logs.warn("assetsTree failed, using fallback method.", "Language");
+	}
 
-            var lang = parts[2];
-            if (seen.exists(lang)) continue;
-            if (!isAllowed(lang)) continue;
+	#if android
+	if (folders == null || folders.length == 0)
+	{
+		try {
+			folders = Assets.list().filter(function(path:String)
+			{
+				return path.startsWith("assets/" + mainPath) 
+					&& path.split("/").length >= 3;
+			}).map(function(path:String)
+			{
+				return path.split("/")[2];
+			});
+			folders = Lambda.array(Lambda.set(folders));
+		} catch (e:Dynamic) {}
+	}
+	#end
 
-            seen.set(lang, true);
+	for (lang in folders)
+	{
+		if (!isAllowed(lang)) continue;
 
-            var config = getDefaultConfig(lang);
-            var configPath = LANG_FOLDER + "/" + lang + "/config.ini";
+		var path:String = Path.join([mainPath, lang, "config.ini"]);
+		var config = getDefaultConfig(lang);
 
-            if (Assets.exists(configPath)) {
-                try {
-                    var c = IniUtil.parseAsset(configPath);
-                    for (i => v in c)
-                        for (key => value in v)
-                            config[key] = value;
-                } catch(e:Dynamic) {
-                    DebugLogger.log("Failed parsing config.ini for " + lang);
-                }
-            }
+		if(Assets.exists(path)) {
+			var c = IniUtil.parseAsset(path);
+			for (i => v in c)
+				for (key => value in v)
+					config[key] = value;
+		} else {
+			for(file in Paths.getFolderContent(mainPath + lang).sortAlphabetically()) {
+				if(Path.extension(file) == "xml") {
+					config["name"] = Path.withoutExtension(file);
+					break;
+				}
+			}
+		}
 
-            var langName = config.exists("name") ? config["name"] : lang;
-            nameMap.set(lang, langName);
-            langConfigs.set(lang, config);
-            foundLanguages.push(lang + "/" + langName);
-        }
+		langName = config["name"];
+		nameMap.set(lang, langName);
+		langConfigs.set(lang, config);
+		foundLanguages.push('$lang/$langName');
+	}
 
-        var defaultName = Flags.DEFAULT_LANGUAGE + "/" + getLanguageName(Flags.DEFAULT_LANGUAGE);
-        if (foundLanguages.contains(defaultName)) foundLanguages.remove(defaultName);
-        foundLanguages.insert(0, defaultName);
+	var defaultName = Flags.DEFAULT_LANGUAGE + "/" + getLanguageName(Flags.DEFAULT_LANGUAGE);
+	if(foundLanguages.contains(defaultName)) foundLanguages.remove(defaultName);
+	foundLanguages.insert(0, defaultName);
 
-        if (!nameMap.exists(curLanguage))
-            curLanguage = Flags.DEFAULT_LANGUAGE;
-        #end
-    }
+	if(!nameMap.exists(curLanguage)) curLanguage = Flags.DEFAULT_LANGUAGE;
+
+	Logs.trace("Found languages: " + foundLanguages.join(", "), "Language");
+	#end
+}
 
     public static function setLanguage(?name:String):Void {
         #if TRANSLATIONS_SUPPORT
