@@ -24,6 +24,11 @@ import openfl.utils.AssetLibrary;
 import sys.FileSystem;
 import sys.io.File;
 
+#if android
+import funkin.mobile.utils.MobileUtil;
+import funkin.mobile.DebugLogger;
+#end
+
 class Main extends Sprite
 {
 	public static var instance:Main;
@@ -63,6 +68,10 @@ class Main extends Sprite
 
 		instance = this;
 
+		#if android
+        DebugLogger.init();
+        #end
+
 		addChild(game = new FunkinGame(gameWidth, gameHeight, MainState, Options.framerate, Options.framerate, skipSplash, startFullscreen));
 
 		addChild(framerateSprite = new Framerate());
@@ -90,6 +99,12 @@ class Main extends Sprite
 	}
 
 	public static function loadGameSettings() {
+	    #if android
+		MobileUtil.getPermissions();
+		MobileUtil.copyAssetsFromAPK();
+		MobileUtil.copyModsFromAPK();
+		#end
+			
 		WindowUtils.init();
 		SaveWarning.init();
 		MemoryUtil.init();
