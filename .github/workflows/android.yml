@@ -77,6 +77,7 @@ jobs:
         run: |
          haxelib install openfl 9.2.2 --skip-dependecies
          haxelib set openfl 9.2.2 --skip-dependencies
+         haxelib set openfl git
 
       - name: Building Android Release APK
         run: haxelib run lime build android -release
