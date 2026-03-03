@@ -8,6 +8,7 @@ import haxe.io.Path;
 import haxe.xml.Access;
 import haxe.Exception;
 import funkin.backend.utils.translations.FormatUtil;
+import funkin.mobile.DebugLogger;
 
 /**
  * The class used for translations based on the XMLs inside the translations folders.
@@ -185,7 +186,7 @@ final class TranslationUtil
 	/**
 	 * Returns an array that specifies which languages were found.
 	 */
-    public static function findAllLanguagesSafe():Void {
+    public static function findAllLanguages():Void {
     #if TRANSLATIONS_SUPPORT
     try {
         foundLanguages = [];
@@ -219,7 +220,7 @@ final class TranslationUtil
                             for(key => value in v)
                                 config[key] = value;
                     } catch(e:Dynamic) {
-                        CrashLogger.log("Failed parsing config.ini for " + lang + ": " + Std.string(e));
+                        DebugLogger.log("Failed parsing config.ini for " + lang + ": " + Std.string(e));
                     }
                 }
 
@@ -229,7 +230,7 @@ final class TranslationUtil
                 foundLanguages.push(lang + "/" + langName);
 
             } catch(e:Dynamic) {
-                CrashLogger.log("Error processing asset file: " + file + " -> " + Std.string(e));
+                DebugLogger.log("Error processing asset file: " + file + " -> " + Std.string(e));
             }
         }
 
@@ -244,10 +245,10 @@ final class TranslationUtil
         if(!nameMap.exists(curLanguage))
             curLanguage = Flags.DEFAULT_LANGUAGE;
 
-        CrashLogger.log("Found languages: " + foundLanguages.join(", "));
+        DebugLogger.log("Found languages: " + foundLanguages.join(", "));
 
     } catch(e:Dynamic) {
-        CrashLogger.log("Unexpected error in findAllLanguagesSafe(): " + Std.string(e));
+        DebugLogger.log("Unexpected error in findAllLanguagesSafe(): " + Std.string(e));
     }
     #end
 }
