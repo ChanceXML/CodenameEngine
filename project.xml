@@ -80,8 +80,8 @@
 	<!-- Comment this out to disable multithreading !-->
 	<haxedef name="ALLOW_MULTITHREADING" unless="web || flash" />
 
-	<!-- Comment this out to disable mods folder
-	<haxedef name="MOD_SUPPORT" unless="web"/> !-->
+	<!-- Comment this out to disable mods folder !-->
+	<haxedef name="MOD_SUPPORT" unless="web"/> 
 
 	<!-- Comment this out to disable translations folders !-->
 	<haxedef name="TRANSLATIONS_SUPPORT"/> 
