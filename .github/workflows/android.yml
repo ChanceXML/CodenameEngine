@@ -75,8 +75,8 @@ jobs:
 
       - name: Testing
         run: |
-         haxelib install openfl 9.2.2
-         haxelib set openfl 9.2.2
+         haxelib install openfl 9.2.2 --skip-dependecies
+         haxelib set openfl 9.2.2 --skip-dependencies
 
       - name: Building Android Release APK
         run: haxelib run lime build android -release
