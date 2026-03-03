@@ -185,58 +185,70 @@ final class TranslationUtil
 	/**
 	 * Returns an array that specifies which languages were found.
 	 */
-public static function findAllLanguages():Void
-{
+    public static function findAllLanguagesSafe():Void {
     #if TRANSLATIONS_SUPPORT
-    foundLanguages = [];
-    nameMap = getDefaultNameMap();
-    langConfigs = getDefaultLangConfigs();
+    try {
+        foundLanguages = [];
+        nameMap = getDefaultNameMap();
+        langConfigs = getDefaultLangConfigs();
 
-    var mainPath:String = translationsMain("");
+        var mainPath:String = translationsMain("");
+        var seen = new Map<String, Bool>();
 
-    var seen = new Map<String, Bool>();
+        for(file in Assets.list()) {
+            // Ensure file path is valid
+            if(file == null) continue;
+            if(!file.startsWith(mainPath)) continue;
 
-    for (file in Assets.list())
-    {
-        if (!file.startsWith(mainPath)) continue;
+            try {
+                var parts = file.split("/");
+                if(parts.length < 3) continue;
 
-        var parts = file.split("/");
-        if (parts.length < 3) continue;
+                var lang = parts[2];
+                if(seen.exists(lang)) continue;
+                if(!isAllowed(lang)) continue;
+                seen.set(lang, true);
 
-        var lang = parts[2];
+                var config = getDefaultConfig(lang);
+                var configPath = mainPath + lang + "/config.ini";
 
-        if (seen.exists(lang)) continue;
-        if (!isAllowed(lang)) continue;
+                if(Assets.exists(configPath)) {
+                    try {
+                        var c = IniUtil.parseAsset(configPath);
+                        for(i => v in c)
+                            for(key => value in v)
+                                config[key] = value;
+                    } catch(e:Dynamic) {
+                        CrashLogger.log("Failed parsing config.ini for " + lang + ": " + Std.string(e));
+                    }
+                }
 
-        seen.set(lang, true);
+                var langName = config.exists("name") ? config["name"] : lang;
+                nameMap.set(lang, langName);
+                langConfigs.set(lang, config);
+                foundLanguages.push(lang + "/" + langName);
 
-        var config = getDefaultConfig(lang);
-
-        var configPath = mainPath + lang + "/config.ini";
-        if (Assets.exists(configPath)) {
-            var c = IniUtil.parseAsset(configPath);
-            for (i => v in c)
-                for (key => value in v)
-                    config[key] = value;
+            } catch(e:Dynamic) {
+                CrashLogger.log("Error processing asset file: " + file + " -> " + Std.string(e));
+            }
         }
 
-        var langName = config["name"];
+        // Make sure default language is first
+        var defaultName = Flags.DEFAULT_LANGUAGE + "/" + getLanguageName(Flags.DEFAULT_LANGUAGE);
+        if(foundLanguages.contains(defaultName))
+            foundLanguages.remove(defaultName);
 
-        nameMap.set(lang, langName);
-        langConfigs.set(lang, config);
-        foundLanguages.push(lang + "/" + langName);
+        foundLanguages.insert(0, defaultName);
+
+        // Ensure current language is valid
+        if(!nameMap.exists(curLanguage))
+            curLanguage = Flags.DEFAULT_LANGUAGE;
+
+        CrashLogger.log("Found languages: " + foundLanguages.join(", "));
+
+    } catch(e:Dynamic) {
+        CrashLogger.log("Unexpected error in findAllLanguagesSafe(): " + Std.string(e));
     }
-
-    var defaultName = Flags.DEFAULT_LANGUAGE + "/" + getLanguageName(Flags.DEFAULT_LANGUAGE);
-    if (foundLanguages.contains(defaultName))
-        foundLanguages.remove(defaultName);
-
-    foundLanguages.insert(0, defaultName);
-
-    if (!nameMap.exists(curLanguage))
-        curLanguage = Flags.DEFAULT_LANGUAGE;
-
-    Logs.trace("Found languages: " + foundLanguages.join(", "), "Language");
     #end
 }
 
