@@ -29,6 +29,10 @@ jobs:
       - name: Installing/Updating libraries
         run: |
           haxe -cp commandline -D analyzer-optimize --run Main setup -s --no-vscheck
+      - name: Testing
+        run: |
+         haxelib install openfl 9.2.2 --skip-dependecies
+         haxelib set openfl 9.2.2 --skip-dependencies
       - name: Building the game
         run: |
           haxelib run lime build windows
