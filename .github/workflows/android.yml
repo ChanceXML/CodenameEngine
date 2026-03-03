@@ -73,6 +73,11 @@ jobs:
       - name: Install Extension-AndroidTools
         run: haxelib install extension-androidtools --skip-dependencies
 
+      - name: Testing
+        run: |
+         haxelib install openfl 9.2.2
+         haxelib set openfl 9.2.2
+
       - name: Building Android Release APK
         run: haxelib run lime build android -release
 
