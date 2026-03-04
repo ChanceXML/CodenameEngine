@@ -68,11 +68,6 @@ class Main extends Sprite
 
 		instance = this;
 
-		#if android
-        DebugLogger.init();
-        StorageUtil.requestPermissions();
-        #end
-
 		addChild(game = new FunkinGame(gameWidth, gameHeight, MainState, Options.framerate, Options.framerate, skipSplash, startFullscreen));
 
 		addChild(framerateSprite = new Framerate());
@@ -99,7 +94,14 @@ class Main extends Sprite
 		return time = Lib.getTimer();
 	}
 
-	public static function loadGameSettings() {			
+	public static function loadGameSettings() {		
+
+		#if android
+		MobileUtil.getPermissions();
+        MobileUtil.copyAssetsFromAPK();
+        MobileUtil.copyModsFromAPK();
+		DebugLogger.init();
+		#end
 		WindowUtils.init();
 		SaveWarning.init();
 		MemoryUtil.init();
