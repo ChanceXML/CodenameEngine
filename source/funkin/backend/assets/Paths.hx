@@ -14,12 +14,14 @@ using StringTools;
 
 class Paths
 {
-    public static var ROOT:String =
+    public static function getRoot():String
+{
     #if android
-        openfl.filesystem.File.applicationStorageDirectory.nativePath + "/CodenameEngine-v1.0.1/";
+    return openfl.filesystem.File.applicationStorageDirectory.nativePath + "/CodenameEngine-v1.0.1/";
     #else
-        "";
+    return "";
     #end
+}
 
     public static var assetsTree:AssetsLibraryList;
     public static var tempFramesCache:Map<String, FlxFramesCollection> = null;
