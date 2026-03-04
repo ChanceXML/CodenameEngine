@@ -98,7 +98,7 @@ class Paths
 		return getPath('images/$key.$ext', library);
 	}
 
-	public static inline function script(key:String, ?library:String, isAssetsPath:Bool = false) {
+	public static function script(key:String, ?library:String, isAssetsPath:Bool = false) {
 		var scriptPath = isAssetsPath ? key : getPath(key, library);
 		if (!OpenFlAssets.exists(scriptPath)) {
 			for(ex in Script.scriptExtensions) {
