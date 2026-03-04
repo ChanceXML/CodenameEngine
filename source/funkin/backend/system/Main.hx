@@ -97,9 +97,9 @@ class Main extends Sprite
 	public static function loadGameSettings() {		
 
 		#if android
-		MobileUtil.getPermissions();
-        MobileUtil.copyAssetsFromAPK();
-        MobileUtil.copyModsFromAPK();
+		StorageUtil.getPermissions();
+        StorageUtil.copyAssetsFromAPK();
+        StorageUtil.copyModsFromAPK();
 		DebugLogger.init();
 		#end
 		WindowUtils.init();
