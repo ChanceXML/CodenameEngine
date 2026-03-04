@@ -14,9 +14,16 @@ using StringTools;
 
 class Paths
 {
-	public static var assetsTree:AssetsLibraryList;
-	public static var tempFramesCache:Map<String, FlxFramesCollection> = null;
+    public static var ROOT:String =
+    #if android
+        openfl.filesystem.File.applicationStorageDirectory.nativePath + "/CodenameEngine-v1.0.1/";
+    #else
+        "";
+    #end
 
+    public static var assetsTree:AssetsLibraryList;
+    public static var tempFramesCache:Map<String, FlxFramesCollection> = null;
+	
 	public static function init() {
 		if (tempFramesCache == null) tempFramesCache = new Map<String, FlxFramesCollection>();
 
