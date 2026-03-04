@@ -45,7 +45,7 @@ class StorageUtil
 
 		root = Path.addTrailingSlash(root);
 
-		var finalPath:String = root + ".CodenameEngine/";
+		var finalPath:String = root + ".CodenameEngine-v1.0.1/";
 		return finalPath;
 	}
 
