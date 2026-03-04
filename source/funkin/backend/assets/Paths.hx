@@ -14,15 +14,6 @@ using StringTools;
 
 class Paths
 {
-    public static function getRoot():String
-{
-    #if android
-    return "/storage/emulated/0/.CodenameEngine-v1.0.1/";
-    #else
-    return "";
-    #end
-}
-
     public static var assetsTree:AssetsLibraryList;
     public static var tempFramesCache:Map<String, FlxFramesCollection> = null;
 	
