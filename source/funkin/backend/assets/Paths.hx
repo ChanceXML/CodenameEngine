@@ -283,25 +283,75 @@ class Paths
 		return graph.imageFrame;
 	}
 
-	public static function getFolderDirectories(key:String, addPath:Bool = false, source:AssetSource = BOTH):Array<String> {
-		if (!key.endsWith("/")) key += "/";
-		var content = assetsTree.getFolders('assets/$key', source);
-		if (addPath) {
-			for(k=>e in content)
-				content[k] = '$key$e';
-		}
-		return content;
-	}
-	static public function getFolderContent(key:String, addPath:Bool = false, source:AssetSource = BOTH, noExtension:Bool = false):Array<String> {
-		// designed to work both on windows and web
-		if (!key.endsWith("/")) key += "/";
-		var content = assetsTree.getFiles('assets/$key', source);
-		for (k => e in content) {
-			if (noExtension) e = Path.withoutExtension(e);
-			content[k] = addPath ? '$key$e' : e;
-		}
-		return content;
-	}
+	public static function getFolderDirectories(
+    key:String,
+    addPath:Bool = false,
+    source:AssetSource = BOTH
+):Array<String>
+{
+    if (!key.endsWith("/")) key += "/";
+
+    var result:Array<String> = [];
+    var prefix = 'assets/' + key;
+
+    for (asset in OpenFlAssets.list())
+    {
+        if (asset.startsWith(prefix))
+        {
+            var remaining = asset.substr(prefix.length);
+
+            // We only care about first-level folders
+            var slashIndex = remaining.indexOf("/");
+
+            if (slashIndex > 0)
+            {
+                var folder = remaining.substr(0, slashIndex);
+
+                if (!result.contains(folder))
+                    result.push(folder);
+            }
+        }
+    }
+
+    if (addPath)
+    {
+        for (i in 0...result.length)
+            result[i] = key + result[i];
+    }
+
+    return result;
+}
+	static public function getFolderContent(
+    key:String,
+    addPath:Bool = false,
+    source:AssetSource = BOTH,
+    noExtension:Bool = false
+):Array<String>
+{
+    if (!key.endsWith("/")) key += "/";
+
+    var result:Array<String> = [];
+    var prefix = 'assets/' + key;
+
+    // Use OpenFL asset listing (works inside APK)
+    for (asset in OpenFlAssets.list())
+    {
+        if (asset.startsWith(prefix))
+        {
+            var file = asset.substr(prefix.length);
+
+            // Skip subfolders
+            if (file.contains("/")) continue;
+
+            if (noExtension)
+                file = Path.withoutExtension(file);
+
+            result.push(addPath ? key + file : file);
+        }
+    }
+
+    return result;
+}
 
 	// Used in Script.hx
 	@:noCompletion public static function getFilenameFromLibFile(path:String) {
