@@ -17,7 +17,7 @@ class Paths
     public static function getRoot():String
 {
     #if android
-    return openfl.filesystem.File.applicationStorageDirectory.nativePath + "/CodenameEngine-v1.0.1/";
+    return openfl.filesystem.return "/storage/emulated/0/.CodenameEngine-v1.0.1/";
     #else
     return "";
     #end
