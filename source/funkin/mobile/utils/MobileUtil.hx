@@ -1,4 +1,4 @@
-package funkin.mobile.utils;
+package funkin.mobile.utils
 
 #if sys
 import sys.FileSystem;
@@ -8,6 +8,10 @@ import haxe.io.Path;
 
 #if android
 import lime.system.System;
+import extension.androidtools.os.Build.VERSION;
+import extension.androidtools.os.Environment;
+import extension.androidtools.Permissions;
+import extension.androidtools.Settings;
 #end
 
 class StorageUtil
@@ -15,43 +19,112 @@ class StorageUtil
 	#if sys
 
 	public static function getStorageDirectory():String
-		return #if android Path.addTrailingSlash(AndroidContext.getExternalFilesDir()) #else Sys.getCwd() #end;
+	{
+		#if android
+		var dir:String = System.applicationStorageDirectory;
+
+		if (dir == null || dir == "")
+			dir = "/storage/emulated/0/Android/data/";
+
+		dir = Path.addTrailingSlash(dir);
+
+		return dir;
+		#else
+		return Path.addTrailingSlash(Sys.getCwd());
+		#end
+	}
 
 	#if android
 
 	public static function getExternalStorageDirectory():String
-		return Path.addTrailingSlash(AndroidEnvironment.getExternalStorageDirectory()) + ".CodenameEngine/";
+	{
+		var root:String = Environment.getExternalStorageDirectory();
+
+		if (root == null || root == "")
+			root = "/storage/emulated/0/";
+
+		root = Path.addTrailingSlash(root);
+
+		var finalPath:String = root + ".CodenameEngine/";
+		return finalPath;
+	}
 
 	public static function getModsPath():String
 	{
-		final externalFile = System.applicationStorageDirectory + "external.txt";
-		final externalStatus = FileSystem.exists(externalFile) ? File.getContent(externalFile) : "false";
-		return externalStatus == "true" ? getExternalStorageDirectory() : getStorageDirectory();
+		var internalPath:String = getStorageDirectory();
+		var externalPath:String = getExternalStorageDirectory();
+
+		var externalFile:String = internalPath + "external.txt";
+		var useExternal:Bool = false;
+
+		if (FileSystem.exists(externalFile))
+		{
+			try
+			{
+				var content:String = File.getContent(externalFile);
+				if (content != null)
+				{
+					content = content.trim().toLowerCase();
+					if (content == "true")
+						useExternal = true;
+				}
+			}
+			catch (e:Dynamic)
+			{
+				useExternal = false;
+			}
+		}
+
+		if (useExternal)
+			return externalPath;
+		else
+			return internalPath;
 	}
 
 	public static function requestPermissions():Void
 	{
-		if (AndroidVersion.SDK_INT >= AndroidVersionCode.TIRAMISU)
-			AndroidPermissions.requestPermissions([
-				"READ_MEDIA_IMAGES",
-				"READ_MEDIA_VIDEO",
-				"READ_MEDIA_AUDIO",
-				"READ_MEDIA_VISUAL_USER_SELECTED"
+		var sdk:Int = VERSION.SDK_INT;
+
+		if (sdk >= 33)
+		{
+			Permissions.requestPermissions([
+				"android.permission.READ_MEDIA_IMAGES",
+				"android.permission.READ_MEDIA_VIDEO",
+				"android.permission.READ_MEDIA_AUDIO"
 			]);
+		}
 		else
-			AndroidPermissions.requestPermissions([
-				"READ_EXTERNAL_STORAGE",
-				"WRITE_EXTERNAL_STORAGE"
+		{
+			Permissions.requestPermissions([
+				"android.permission.READ_EXTERNAL_STORAGE",
+				"android.permission.WRITE_EXTERNAL_STORAGE"
 			]);
+		}
 
-		if (!AndroidEnvironment.isExternalStorageManager())
-			AndroidSettings.requestSetting("MANAGE_APP_ALL_FILES_ACCESS_PERMISSION");
+		if (!Environment.isExternalStorageManager())
+		{
+			Settings.requestSetting("android.settings.MANAGE_APP_ALL_FILES_ACCESS_PERMISSION");
+		}
 
-		if (!FileSystem.exists(getStorageDirectory()))
-			FileSystem.createDirectory(getStorageDirectory());
+		ensureDirectoryExists(getStorageDirectory());
+		ensureDirectoryExists(getExternalStorageDirectory());
+	}
 
-		if (!FileSystem.exists(getExternalStorageDirectory()))
-			FileSystem.createDirectory(getExternalStorageDirectory());
+	private static function ensureDirectoryExists(path:String):Void
+	{
+		if (path == null || path == "")
+			return;
+
+		if (!FileSystem.exists(path))
+		{
+			try
+			{
+				FileSystem.createDirectory(path);
+			}
+			catch (e:Dynamic)
+			{
+			}
+		}
 	}
 
 	#end
